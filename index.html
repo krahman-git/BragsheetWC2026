@@ -67,7 +67,7 @@ const PLAYERS = [
   { name:'Meng',  avatar:'https://drive.google.com/thumbnail?id=1XjFzvaFTCMAIGrS-iGpoDD0o9aFnUnZj&sz=w300' },
   { name:'Hao',   avatar:'https://drive.google.com/thumbnail?id=19RDk4_PRY0P8IHBxE7taOMur7zMtdI0a&sz=w300' },
   { name:'Jeff',  avatar:'https://drive.google.com/thumbnail?id=1nxcQorVO45o2aIExMGP53cSsbzMGUBES&sz=w300' },
-  { name:'Abby',  avatar:'https://drive.google.com/thumbnail?id=1VOYJP67JEFPcPIS_CgIiQNmdn_v-CBIT&sz=w300' },  //   upload Abby's avatar to Drive then paste her file ID here
+  { name:'Abby',  avatar:null },  // upload Abby's avatar to Drive then paste her file ID here
   { name:'Pal',   avatar:'https://drive.google.com/thumbnail?id=17hkVgHVF5knZuaPT2zMm684RQN1UGcJA&sz=w300' },
 ];
 
@@ -276,7 +276,8 @@ async function apiFetch(action) {
 }
 async function apiPost(body) {
   await fetch(CONFIG.appsScriptUrl, {
-    method:'POST',
+    method:'POST', mode:'cors',
+    headers:{'Content-Type':'application/json'},
     body: JSON.stringify(body)
   });
 }
