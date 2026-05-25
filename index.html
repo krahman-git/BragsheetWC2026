@@ -67,28 +67,32 @@ const PLAYERS = [
   { name:'Meng',  avatar:'https://drive.google.com/thumbnail?id=1XjFzvaFTCMAIGrS-iGpoDD0o9aFnUnZj&sz=w300' },
   { name:'Hao',   avatar:'https://drive.google.com/thumbnail?id=19RDk4_PRY0P8IHBxE7taOMur7zMtdI0a&sz=w300' },
   { name:'Jeff',  avatar:'https://drive.google.com/thumbnail?id=1nxcQorVO45o2aIExMGP53cSsbzMGUBES&sz=w300' },
-  { name:'Abby',  avatar:null },  // upload Abby's avatar to Drive then paste her file ID here
+  { name:'Abby',  avatar:'https://drive.google.com/thumbnail?id=1VOYJP67JEFPcPIS_CgIiQNmdn_v-CBIT&sz=w300' },  //   upload Abby's avatar to Drive then paste her file ID here
   { name:'Pal',   avatar:'https://drive.google.com/thumbnail?id=17hkVgHVF5knZuaPT2zMm684RQN1UGcJA&sz=w300' },
 ];
 
 // ═══════════════════════════════════════════════════════════════
 // FLAGS
 // ═══════════════════════════════════════════════════════════════
-const FLAGS = {
-  'Mexico':'🇲🇽','South Africa':'🇿🇦','South Korea':'🇰🇷','Czechia':'🇨🇿',
-  'Canada':'🇨🇦','Bosnia & Herzegovina':'🇧🇦','Qatar':'🇶🇦','Switzerland':'🇨🇭',
-  'Brazil':'🇧🇷','Morocco':'🇲🇦','Haiti':'🇭🇹','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  'USA':'🇺🇸','Paraguay':'🇵🇾','Australia':'🇦🇺','Turkey':'🇹🇷',
-  'Germany':'🇩🇪','Curaçao':'🇨🇼','Ivory Coast':'🇨🇮','Ecuador':'🇪🇨',
-  'Netherlands':'🇳🇱','Japan':'🇯🇵','Sweden':'🇸🇪','Tunisia':'🇹🇳',
-  'Spain':'🇪🇸','Cape Verde':'🇨🇻','Saudi Arabia':'🇸🇦','Uruguay':'🇺🇾',
-  'Belgium':'🇧🇪','Egypt':'🇪🇬','Iran':'🇮🇷','New Zealand':'🇳🇿',
-  'France':'🇫🇷','Senegal':'🇸🇳','Iraq':'🇮🇶','Norway':'🇳🇴',
-  'Argentina':'🇦🇷','Algeria':'🇩🇿','Austria':'🇦🇹','Jordan':'🇯🇴',
-  'Portugal':'🇵🇹','DR Congo':'🇨🇩','Uzbekistan':'🇺🇿','Colombia':'🇨🇴',
-  'England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Croatia':'🇭🇷','Ghana':'🇬🇭','Panama':'🇵🇦',
+const FLAG_CODES = {
+  'Mexico':'mx','South Africa':'za','South Korea':'kr','Czechia':'cz',
+  'Canada':'ca','Bosnia & Herzegovina':'ba','Qatar':'qa','Switzerland':'ch',
+  'Brazil':'br','Morocco':'ma','Haiti':'ht','Scotland':'gb-sct',
+  'USA':'us','Paraguay':'py','Australia':'au','Turkey':'tr',
+  'Germany':'de','Curaçao':'cw','Ivory Coast':'ci','Ecuador':'ec',
+  'Netherlands':'nl','Japan':'jp','Sweden':'se','Tunisia':'tn',
+  'Spain':'es','Cape Verde':'cv','Saudi Arabia':'sa','Uruguay':'uy',
+  'Belgium':'be','Egypt':'eg','Iran':'ir','New Zealand':'nz',
+  'France':'fr','Senegal':'sn','Iraq':'iq','Norway':'no',
+  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
+  'Portugal':'pt','DR Congo':'cd','Uzbekistan':'uz','Colombia':'co',
+  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
 };
-const flag = t => FLAGS[t] || '🏳';
+const flag = (t, size=32) => {
+  const code = FLAG_CODES[t];
+  if (!code) return <span style={{fontSize:'1.2rem'}}>🏳</span>;
+  return <img src={`https://flagcdn.com/w40/${code}.png`} alt={t} style={{width:size,height:'auto',borderRadius:2,verticalAlign:'middle',display:'inline-block'}} />;
+};
 
 // ═══════════════════════════════════════════════════════════════
 // MATCH SCHEDULE — all 104 matches, UTC times
@@ -275,11 +279,15 @@ async function apiFetch(action) {
   return r.json();
 }
 async function apiPost(body) {
-  await fetch(CONFIG.appsScriptUrl, {
-    method:'POST', mode:'cors',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(body)
-  });
+  try {
+    await fetch(CONFIG.appsScriptUrl, {
+      method:'POST',
+      mode:'no-cors',
+      body: JSON.stringify(body)
+    });
+  } catch(e) {
+    console.warn('apiPost error:', e);
+  }
 }
 
 function parsePredictions(rows) {
@@ -563,7 +571,7 @@ function Leaderboard({ predictions, scores }) {
                 return (
                   <div key={mid} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
                     padding:'6px 0',borderBottom:'1px solid var(--navy3)',fontSize:'.82rem'}}>
-                    <span style={{color:'var(--grey)'}}>{flag(m.home)} {m.home} v {m.away} {flag(m.away)}</span>
+                    <span style={{color:'var(--grey)'}}>{flag(m.home,16)} {m.home} v {m.away} {flag(m.away,16)}</span>
                     <span style={{color:'var(--grey)'}}>Actual: {d.actual.home}–{d.actual.away} | Pred: {d.pred?`${d.pred.home}–${d.pred.away}`:'—'}</span>
                     <ScoreBadge pts={d.pts}/>
                   </div>
