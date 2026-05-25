@@ -365,6 +365,7 @@ function MatchCard({ match, predictions, scores, currentPlayer, onSave }) {
   React.useEffect(()=>{
     const p = predictions[match.id]?.[currentPlayer];
     if (p) { setHomeVal(p.home); setAwayVal(p.away); }
+    else { setHomeVal(''); setAwayVal(''); }
   }, [predictions, match.id, currentPlayer]);
 
   const save = async () => {
