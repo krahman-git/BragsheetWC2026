@@ -242,6 +242,10 @@ const stageLabel = s => ({
   qf:'Quarter-Finals', sf:'Semi-Finals', '3rd':'3rd Place Play-off', final:'Final'
 }[s] || s);
 
+// Pre-computed O(1) lookups — built once at module load
+const MATCH_BY_ID = Object.fromEntries(MATCHES.map(m => [m.id, m]));
+const MATCH_TIME  = Object.fromEntries(MATCHES.map(m => [m.id, fmtShort(m.utc)]));
+
 function calcPoints(pred, actual) {
   if (!pred || actual.home == null || actual.away == null) return null;
   const predOut  = Math.sign(pred.home - pred.away);
@@ -333,7 +337,7 @@ function AvatarPlaceholder({ player, size=56, selected, onClick }) {
   return <div style={s} onClick={onClick}>{player.name[0]}</div>;
 }
 
-function PlayerAvatar({ player, size=56, selected, onClick }) {
+const PlayerAvatar = React.memo(function PlayerAvatar({ player, size=56, selected, onClick }) {
   const [err, setErr] = React.useState(false);
   if (!player.avatar || err)
     return <AvatarPlaceholder player={player} size={size} selected={selected} onClick={onClick}/>;
@@ -341,32 +345,32 @@ function PlayerAvatar({ player, size=56, selected, onClick }) {
     border: selected ? '3px solid var(--gold)' : '3px solid var(--navy3)',
     cursor: onClick ? 'pointer' : 'default', transition:'border-color .2s', flexShrink:0 };
   return <img src={player.avatar} style={s} alt={player.name} onClick={onClick} onError={()=>setErr(true)}/>;
-}
+});
 
-function ScoreBadge({ pts }) {
+const ScoreBadge = React.memo(function ScoreBadge({ pts }) {
   if (pts == null) return null;
   if (pts === 5) return <span className="badge badge-gold">🌟 +5</span>;
   if (pts === 3) return <span className="badge badge-green">✅ +3</span>;
   return <span className="badge badge-red">❌ 0</span>;
-}
+});
 
 // ── MATCH CARD ────────────────────────────────────────────────
-function MatchCard({ match, predictions, scores, currentPlayer, onSave }) {
-  const sc = scores[match.id];
+const MatchCard = React.memo(function MatchCard({ match, matchPredictions, matchScore, currentPlayer, onSave }) {
+  const sc = matchScore;
   const locked   = isLocked(match.utc);
   const started  = isStarted(match.utc);
   const finished = sc?.status === 'FINISHED';
-  const myPred   = predictions[match.id]?.[currentPlayer] || {};
+  const myPred   = matchPredictions?.[currentPlayer] || {};
   const [homeVal, setHomeVal] = React.useState(myPred.home ?? '');
   const [awayVal, setAwayVal] = React.useState(myPred.away ?? '');
   const [saving,  setSaving]  = React.useState(false);
   const [saved,   setSaved]   = React.useState(false);
 
   React.useEffect(()=>{
-    const p = predictions[match.id]?.[currentPlayer];
+    const p = matchPredictions?.[currentPlayer];
     if (p) { setHomeVal(p.home); setAwayVal(p.away); }
     else { setHomeVal(''); setAwayVal(''); }
-  }, [predictions, match.id, currentPlayer]);
+  }, [matchPredictions, currentPlayer]);
 
   const save = async () => {
     if (homeVal === '' || awayVal === '') return;
@@ -387,7 +391,7 @@ function MatchCard({ match, predictions, scores, currentPlayer, onSave }) {
         <div>
           {match.group && <span style={{fontSize:'.72rem',color:'var(--gold)',fontWeight:700,letterSpacing:'.05em'}}>GROUP {match.group}</span>}
           {match.label && <span style={{fontSize:'.72rem',color:'var(--gold)',fontWeight:700}}>{match.label}</span>}
-          <div style={{fontSize:'.78rem',color:'var(--grey)',marginTop:2}}>{fmtShort(match.utc)} CST · {match.venue}</div>
+          <div style={{fontSize:'.78rem',color:'var(--grey)',marginTop:2}}>{MATCH_TIME[match.id]} CST · {match.venue}</div>
         </div>
         <div style={{textAlign:'right'}}>
           {finished && <span className="badge badge-green">FINAL</span>}
@@ -444,7 +448,7 @@ function MatchCard({ match, predictions, scores, currentPlayer, onSave }) {
             <tr>
               <td style={{fontSize:'.72rem',color:'var(--grey)',paddingRight:8}}>Prediction</td>
               {PLAYERS.map(p=>{
-                const pred = predictions[match.id]?.[p.name];
+                const pred = matchPredictions?.[p.name];
                 const pts  = finished ? calcPoints(pred, sc) : null;
                 const isMe = p.name === currentPlayer;
                 return (
@@ -485,13 +489,13 @@ function MatchCard({ match, predictions, scores, currentPlayer, onSave }) {
       )}
     </div>
   );
-}
+});
 
 // ── LEADERBOARD ───────────────────────────────────────────────
 function Leaderboard({ predictions, scores }) {
-  const lb = buildLeaderboard(predictions, scores);
+  const lb = React.useMemo(() => buildLeaderboard(predictions, scores), [predictions, scores]);
   const [expanded, setExpanded] = React.useState(null);
-  const finishedCount = MATCHES.filter(m => scores[m.id]?.status === 'FINISHED').length;
+  const finishedCount = React.useMemo(() => MATCHES.filter(m => scores[m.id]?.status === 'FINISHED').length, [scores]);
 
   const badges = (p) => {
     const b = [];
@@ -567,7 +571,7 @@ function Leaderboard({ predictions, scores }) {
                 <div><div style={{fontSize:'1.2rem',fontWeight:700}}>{p.played}</div><div style={{fontSize:'.7rem',color:'var(--grey)'}}>Matches Played</div></div>
               </div>
               {Object.entries(p.detail).map(([mid,d])=>{
-                const m = MATCHES.find(x=>x.id===parseInt(mid));
+                const m = MATCH_BY_ID[parseInt(mid)];
                 if (!m) return null;
                 return (
                   <div key={mid} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
@@ -617,8 +621,10 @@ function AdminModal({ onClose, onSaveScore, onFetchLive, scores, adminUnlocked, 
     setTimeout(()=>setMsg(''),2000);
   };
 
-  const matchOpts = MATCHES.filter(m => m.stage === 'group' || m.home !== 'TBD')
-    .concat(MATCHES.filter(m => m.home === 'TBD'));
+  const selectedMatch = React.useMemo(() => MATCH_BY_ID[parseInt(selMatch)], [selMatch]);
+  const matchOpts = React.useMemo(() =>
+    MATCHES.filter(m => m.stage === 'group' || m.home !== 'TBD')
+      .concat(MATCHES.filter(m => m.home === 'TBD')), []);
 
   return (
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -656,14 +662,14 @@ function AdminModal({ onClose, onSaveScore, onFetchLive, scores, adminUnlocked, 
                 <div style={{display:'flex',gap:12,alignItems:'center',marginBottom:12}}>
                   <div style={{flex:1}}>
                     <label style={{fontSize:'.8rem',color:'var(--grey)',display:'block',marginBottom:4}}>
-                      {MATCHES.find(m=>m.id===parseInt(selMatch))?.home||'Home'} Goals
+                      {selectedMatch?.home||'Home'} Goals
                     </label>
                     <input type="number" min="0" value={homeG} onChange={e=>setHomeG(e.target.value)} style={{width:'100%'}}/>
                   </div>
                   <div style={{paddingTop:20,color:'var(--grey)',fontWeight:700}}>–</div>
                   <div style={{flex:1}}>
                     <label style={{fontSize:'.8rem',color:'var(--grey)',display:'block',marginBottom:4}}>
-                      {MATCHES.find(m=>m.id===parseInt(selMatch))?.away||'Away'} Goals
+                      {selectedMatch?.away||'Away'} Goals
                     </label>
                     <input type="number" min="0" value={awayG} onChange={e=>setAwayG(e.target.value)} style={{width:'100%'}}/>
                   </div>
@@ -724,13 +730,14 @@ function App() {
   const [tab,           setTab]            = React.useState('predictions');
   const [stageFilter,   setStageFilter]    = React.useState('all');
   const [groupFilter,   setGroupFilter]    = React.useState('all');
+  const [dateFilter,    setDateFilter]     = React.useState('all');
   const [showAdmin,     setShowAdmin]      = React.useState(false);
   const [adminUnlocked, setAdminUnlocked] = React.useState(false);
   const [loading,       setLoading]        = React.useState(true);
   const [error,         setError]          = React.useState('');
   const noBackend = CONFIG.appsScriptUrl === 'YOUR_APPS_SCRIPT_URL_HERE';
 
-  const load = async () => {
+  const load = React.useCallback(async () => {
     if (noBackend) { setLoading(false); return; }
     try {
       const [pRows, sRows] = await Promise.all([apiFetch('getPredictions'), apiFetch('getScores')]);
@@ -738,40 +745,56 @@ function App() {
       setScores(parseScores(sRows));
     } catch(e) { setError('Could not reach backend. Check Apps Script URL.'); }
     setLoading(false);
-  };
+  }, [noBackend]);
 
-  React.useEffect(()=>{ load(); }, []);
+  React.useEffect(()=>{ load(); }, [load]);
   React.useEffect(()=>{
     if (noBackend) return;
     const t = setInterval(load, CONFIG.refreshInterval);
     return ()=>clearInterval(t);
-  }, []);
+  }, [load, noBackend]);
 
-  const handleSavePrediction = async (matchId, home, away) => {
+  const handleSavePrediction = React.useCallback(async (matchId, home, away) => {
     if (!currentPlayer) return;
-    // Optimistic update
     setPredictions(prev => ({...prev, [matchId]: {...prev[matchId], [currentPlayer]: {home, away}}}));
     if (!noBackend) await apiPost({ action:'savePrediction', matchId, playerName:currentPlayer, home, away });
-  };
+  }, [currentPlayer, noBackend]);
 
-  const handleSaveScore = async (matchId, home, away, status) => {
+  const handleSaveScore = React.useCallback(async (matchId, home, away, status) => {
     setScores(prev => ({...prev, [matchId]: {home, away, status}}));
     if (!noBackend) await apiPost({ action:'saveScore', matchId, home, away, status, pin: CONFIG.adminPin });
-  };
+  }, [noBackend]);
 
-  const handleFetchLive = async () => {
+  const handleFetchLive = React.useCallback(async () => {
     if (!noBackend) await apiPost({ action:'fetchLiveScores', pin: CONFIG.adminPin });
     await load();
-  };
+  }, [noBackend, load]);
+
+  // Derive sorted unique match dates in CST
+  const matchDates = React.useMemo(() => {
+    const seen = new Set();
+    const dates = [];
+    MATCHES.forEach(m => {
+      const d = new Date(m.utc).toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'});
+      if (!seen.has(d)) { seen.add(d); dates.push(d); }
+    });
+    return dates;
+  }, []);
+
+  const todayLabel = React.useMemo(() => new Date().toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'}), []);
 
   // Filter matches
   const visibleMatches = React.useMemo(() => {
     return MATCHES.filter(m => {
       if (stageFilter !== 'all' && m.stage !== stageFilter) return false;
       if (groupFilter !== 'all' && m.group !== groupFilter) return false;
+      if (dateFilter !== 'all') {
+        const d = new Date(m.utc).toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'});
+        if (d !== dateFilter) return false;
+      }
       return true;
     });
-  }, [stageFilter, groupFilter]);
+  }, [stageFilter, groupFilter, dateFilter]);
 
   const stages = ['all','group','r32','r16','qf','sf','3rd','final'];
   const groups = ['all','A','B','C','D','E','F','G','H','I','J','K','L'];
@@ -867,6 +890,20 @@ function App() {
 
       {!loading && tab === 'predictions' && (
         <div>
+          {/* Date filter */}
+          <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:6,marginBottom:6,alignItems:'center'}}>
+            <span style={{fontSize:'.72rem',color:'var(--grey)',flexShrink:0,marginRight:2}}>📅</span>
+            {[{label:'All Dates', val:'all'}, ...matchDates.map(d=>({label: d===todayLabel?`Today (${d})`:d, val:d}))].map(({label,val})=>(
+              <button key={val} className="btn" onClick={()=>setDateFilter(val)}
+                style={{whiteSpace:'nowrap',padding:'5px 12px',fontSize:'.78rem',flexShrink:0,
+                  background:dateFilter===val?'var(--gold2)':'var(--navy2)',
+                  color:dateFilter===val?'var(--navy)':'var(--grey)',
+                  border: val===todayLabel&&dateFilter!==val ? '1px solid var(--gold)' : '1px solid var(--navy3)',
+                  borderRadius:99,fontWeight:dateFilter===val?700:400}}>
+                {label}
+              </button>
+            ))}
+          </div>
           {/* Stage filter */}
           <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:8,marginBottom:8}}>
             {stages.map(s=>(
@@ -897,7 +934,9 @@ function App() {
             Showing {visibleMatches.length} matches · Playing as <strong style={{color:'var(--gold)'}}>{currentPlayer}</strong>
           </div>
           {visibleMatches.map(m=>(
-            <MatchCard key={m.id} match={m} predictions={predictions} scores={scores}
+            <MatchCard key={m.id} match={m}
+              matchPredictions={predictions[m.id]}
+              matchScore={scores[m.id]}
               currentPlayer={currentPlayer} onSave={handleSavePrediction}/>
           ))}
         </div>
