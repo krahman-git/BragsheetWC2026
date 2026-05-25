@@ -770,15 +770,16 @@ function App() {
     await load();
   }, [noBackend, load]);
 
-  // Derive sorted unique match dates in CST
+  // Derive sorted unique match dates in CST (sorted by first match UTC on each date)
   const matchDates = React.useMemo(() => {
-    const seen = new Set();
-    const dates = [];
+    const seen = new Map();
     MATCHES.forEach(m => {
       const d = new Date(m.utc).toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'});
-      if (!seen.has(d)) { seen.add(d); dates.push(d); }
+      if (!seen.has(d)) seen.set(d, m.utc);
     });
-    return dates;
+    return Array.from(seen.entries())
+      .sort((a, b) => new Date(a[1]) - new Date(b[1]))
+      .map(([d]) => d);
   }, []);
 
   const todayLabel = React.useMemo(() => new Date().toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'}), []);
