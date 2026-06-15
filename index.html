@@ -397,7 +397,11 @@ const MatchCard = React.memo(function MatchCard({ match, matchPredictions, match
         </div>
         <div style={{textAlign:'right'}}>
           {finished && <span className="badge badge-green">FINAL</span>}
-          {started && !finished && <span className="badge badge-amber pulse">LIVE</span>}
+          {started && !finished && (
+            sc && sc.home != null && sc.home !== ''
+              ? <span className="badge badge-amber pulse">{sc.home}–{sc.away} LIVE</span>
+              : <span className="badge badge-amber pulse">LIVE</span>
+          )}
           {locked && !started && <span className="badge badge-grey">🔒 Locked</span>}
           {!locked && !started && <span style={{fontSize:'.7rem',color:'var(--grey)'}}>
             Locks in {Math.max(0,Math.floor(hoursUntil(match.utc)))}h
@@ -419,7 +423,14 @@ const MatchCard = React.memo(function MatchCard({ match, matchPredictions, match
           </div>
         ) : started ? (
           <div style={{textAlign:'center',background:'var(--amber)',borderRadius:8,padding:'6px 16px',minWidth:80}}>
-            <div style={{fontSize:'1.5rem',fontWeight:800,color:'var(--navy)'}}>LIVE</div>
+            {sc && sc.home != null && sc.home !== '' ? (
+              <>
+                <div style={{fontSize:'1.5rem',fontWeight:800,color:'var(--navy)',letterSpacing:2}}>{sc.home} – {sc.away}</div>
+                <div style={{fontSize:'.65rem',color:'var(--navy)',fontWeight:700,opacity:.8,letterSpacing:'.05em'}}>LIVE</div>
+              </>
+            ) : (
+              <div style={{fontSize:'1.5rem',fontWeight:800,color:'var(--navy)'}}>LIVE</div>
+            )}
           </div>
         ) : (
           <div style={{textAlign:'center',color:'var(--grey)',fontWeight:700,minWidth:40}}>VS</div>
