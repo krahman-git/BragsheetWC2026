@@ -243,8 +243,10 @@ const stageLabel = s => ({
 }[s] || s);
 
 // Pre-computed O(1) lookups — built once at module load
-const MATCH_BY_ID = Object.fromEntries(MATCHES.map(m => [m.id, m]));
-const MATCH_TIME  = Object.fromEntries(MATCHES.map(m => [m.id, fmtShort(m.utc)]));
+const MATCH_BY_ID   = Object.fromEntries(MATCHES.map(m => [m.id, m]));
+const MATCH_TIME    = Object.fromEntries(MATCHES.map(m => [m.id, fmtShort(m.utc)]));
+const MATCH_HOUR    = Object.fromEntries(MATCHES.map(m => [m.id, new Date(m.utc).toLocaleTimeString('en-US', {timeZone:CONFIG.timezone, hour:'numeric', minute:'2-digit', hour12:true})]));
+const MATCH_DATEKEY = Object.fromEntries(MATCHES.map(m => [m.id, new Date(m.utc).toLocaleDateString('en-US', {timeZone:CONFIG.timezone, weekday:'short', month:'short', day:'numeric'})]));
 
 function calcPoints(pred, actual) {
   if (!pred || actual.home == null || actual.away == null) return null;
@@ -622,9 +624,18 @@ function AdminModal({ onClose, onSaveScore, onFetchLive, scores, adminUnlocked, 
   };
 
   const selectedMatch = React.useMemo(() => MATCH_BY_ID[parseInt(selMatch)], [selMatch]);
-  const matchOpts = React.useMemo(() =>
-    MATCHES.filter(m => m.stage === 'group' || m.home !== 'TBD')
-      .concat(MATCHES.filter(m => m.home === 'TBD')), []);
+  const matchOpts = React.useMemo(() => {
+    const unscored = MATCHES.filter(m => !scores[m.id]).sort((a,b) => new Date(a.utc) - new Date(b.utc));
+    const scored   = MATCHES.filter(m =>  scores[m.id]).sort((a,b) => new Date(a.utc) - new Date(b.utc));
+    // Group unscored by date label
+    const dateMap = new Map();
+    unscored.forEach(m => {
+      const dk = MATCH_DATEKEY[m.id];
+      if (!dateMap.has(dk)) dateMap.set(dk, []);
+      dateMap.get(dk).push(m);
+    });
+    return { dateGroups: Array.from(dateMap.entries()), scored };
+  }, [scores]);
 
   return (
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -650,11 +661,24 @@ function AdminModal({ onClose, onSaveScore, onFetchLive, scores, adminUnlocked, 
                 style={{background:'var(--navy)',border:'1.5px solid var(--navy3)',color:'var(--white)',
                   borderRadius:8,padding:'8px',width:'100%'}}>
                 <option value="">— select match —</option>
-                {MATCHES.map(m=>(
-                  <option key={m.id} value={m.id}>
-                    #{m.id} {m.home} v {m.away} {scores[m.id] ? `(${scores[m.id].home}-${scores[m.id].away})` : ''}
-                  </option>
+                {matchOpts.dateGroups.map(([date, matches]) => (
+                  <optgroup key={date} label={`📅 ${date}`}>
+                    {matches.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {MATCH_HOUR[m.id]} · #{m.id} {m.home} v {m.away}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
+                {matchOpts.scored.length > 0 && (
+                  <optgroup label="✅ Already Scored">
+                    {matchOpts.scored.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {MATCH_HOUR[m.id]} · #{m.id} {m.home} v {m.away} ({scores[m.id].home}–{scores[m.id].away})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
             {selMatch && (
@@ -754,6 +778,27 @@ function App() {
     return ()=>clearInterval(t);
   }, [load, noBackend]);
 
+  const selectPlayer = React.useCallback((name) => {
+    // Find the best date to show on entry
+    const now = new Date();
+    const todayKey = now.toLocaleDateString('en-US', {timeZone: CONFIG.timezone, weekday:'short', month:'short', day:'numeric'});
+    const sortedMatches = [...MATCHES].sort((a,b) => new Date(a.utc) - new Date(b.utc));
+    let bestDate;
+    if (Object.values(MATCH_DATEKEY).includes(todayKey)) {
+      bestDate = todayKey; // there are matches today
+    } else {
+      const next = sortedMatches.find(m => new Date(m.utc) > now);
+      bestDate = next
+        ? MATCH_DATEKEY[next.id]                                    // nearest upcoming match day
+        : MATCH_DATEKEY[sortedMatches[sortedMatches.length - 1].id]; // tournament over — show final day
+    }
+    setCurrentPlayer(name);
+    setDateFilter(bestDate);
+    setStageFilter('all');
+    setGroupFilter('all');
+    window.scrollTo({top: 0, behavior: 'instant'});
+  }, []);
+
   const handleSavePrediction = React.useCallback(async (matchId, home, away) => {
     if (!currentPlayer) return;
     setPredictions(prev => ({...prev, [matchId]: {...prev[matchId], [currentPlayer]: {home, away}}}));
@@ -817,7 +862,7 @@ function App() {
           <h2 style={{textAlign:'center',marginBottom:20,fontSize:'1rem',color:'var(--grey)'}}>Who are you?</h2>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
             {PLAYERS.map(p=>(
-              <div key={p.name} style={{textAlign:'center',cursor:'pointer'}} onClick={()=>setCurrentPlayer(p.name)}>
+              <div key={p.name} style={{textAlign:'center',cursor:'pointer'}} onClick={()=>selectPlayer(p.name)}>
                 <PlayerAvatar player={p} size={64}/>
                 <div style={{marginTop:6,fontSize:'.82rem',fontWeight:600}}>{p.name}</div>
                 {!p.avatar && p.name==='Abby' && <div style={{fontSize:'.65rem',color:'var(--grey)'}}>Upload avatar</div>}
