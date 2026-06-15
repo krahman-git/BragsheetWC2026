@@ -246,7 +246,7 @@ const stageLabel = s => ({
 const MATCH_BY_ID   = Object.fromEntries(MATCHES.map(m => [m.id, m]));
 const MATCH_TIME    = Object.fromEntries(MATCHES.map(m => [m.id, fmtShort(m.utc)]));
 const MATCH_HOUR    = Object.fromEntries(MATCHES.map(m => [m.id, new Date(m.utc).toLocaleTimeString('en-US', {timeZone:CONFIG.timezone, hour:'numeric', minute:'2-digit', hour12:true})]));
-const MATCH_DATEKEY = Object.fromEntries(MATCHES.map(m => [m.id, new Date(m.utc).toLocaleDateString('en-US', {timeZone:CONFIG.timezone, weekday:'short', month:'short', day:'numeric'})]));
+const MATCH_DATEKEY = Object.fromEntries(MATCHES.map(m => [m.id, new Date(m.utc).toLocaleDateString('en-US', {timeZone:CONFIG.timezone, month:'short', day:'numeric'})]));
 
 function calcPoints(pred, actual) {
   if (!pred || actual.home == null || actual.away == null) return null;
@@ -781,7 +781,7 @@ function App() {
   const selectPlayer = React.useCallback((name) => {
     // Find the best date to show on entry
     const now = new Date();
-    const todayKey = now.toLocaleDateString('en-US', {timeZone: CONFIG.timezone, weekday:'short', month:'short', day:'numeric'});
+    const todayKey = now.toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'});
     const sortedMatches = [...MATCHES].sort((a,b) => new Date(a.utc) - new Date(b.utc));
     let bestDate;
     if (Object.values(MATCH_DATEKEY).includes(todayKey)) {
