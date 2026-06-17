@@ -67,8 +67,9 @@ const PLAYERS = [
   { name:'Meng',  avatar:'https://drive.google.com/thumbnail?id=1XjFzvaFTCMAIGrS-iGpoDD0o9aFnUnZj&sz=w300' },
   { name:'Hao',   avatar:'https://drive.google.com/thumbnail?id=19RDk4_PRY0P8IHBxE7taOMur7zMtdI0a&sz=w300' },
   { name:'Jeff',  avatar:'https://drive.google.com/thumbnail?id=1nxcQorVO45o2aIExMGP53cSsbzMGUBES&sz=w300' },
-  { name:'Abby',  avatar:'https://drive.google.com/thumbnail?id=1VOYJP67JEFPcPIS_CgIiQNmdn_v-CBIT&sz=w300' },  //   upload Abby's avatar to Drive then paste her file ID here
   { name:'Pal',   avatar:'https://drive.google.com/thumbnail?id=17hkVgHVF5knZuaPT2zMm684RQN1UGcJA&sz=w300' },
+  { name:'Abby',  avatar:'https://drive.google.com/thumbnail?id=1VOYJP67JEFPcPIS_CgIiQNmdn_v-CBIT&sz=w300' },  //   upload Abby's avatar to Drive then paste her file ID here
+
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -234,7 +235,7 @@ const fmtShort = (utc) => new Date(utc).toLocaleString('en-US',{
   hour:'numeric', minute:'2-digit', hour12:true
 });
 const hoursUntil = (utc) => (new Date(utc) - new Date()) / 36e5;
-const isLocked  = (utc) => hoursUntil(utc) < 5;
+const isLocked  = (utc) => hoursUntil(utc) < 0;
 const isStarted = (utc) => hoursUntil(utc) < 0;
 
 const stageLabel = s => ({
