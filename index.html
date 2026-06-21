@@ -67,9 +67,8 @@ const PLAYERS = [
   { name:'Meng',  avatar:'https://drive.google.com/thumbnail?id=1XjFzvaFTCMAIGrS-iGpoDD0o9aFnUnZj&sz=w300' },
   { name:'Hao',   avatar:'https://drive.google.com/thumbnail?id=19RDk4_PRY0P8IHBxE7taOMur7zMtdI0a&sz=w300' },
   { name:'Jeff',  avatar:'https://drive.google.com/thumbnail?id=1nxcQorVO45o2aIExMGP53cSsbzMGUBES&sz=w300' },
-  { name:'Pal',   avatar:'https://drive.google.com/thumbnail?id=17hkVgHVF5knZuaPT2zMm684RQN1UGcJA&sz=w300' },
   { name:'Abby',  avatar:'https://drive.google.com/thumbnail?id=1VOYJP67JEFPcPIS_CgIiQNmdn_v-CBIT&sz=w300' },  //   upload Abby's avatar to Drive then paste her file ID here
-
+  { name:'Pal',   avatar:'https://drive.google.com/thumbnail?id=17hkVgHVF5knZuaPT2zMm684RQN1UGcJA&sz=w300' },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -357,7 +356,7 @@ const ScoreBadge = React.memo(function ScoreBadge({ pts }) {
   return <span className="badge badge-red">❌ 0</span>;
 });
 
-// ── MATCH CARD ────────────────────────────────────────────────
+// ── MATCH CARD ──────────────────────────────────��─────────────
 const MatchCard = React.memo(function MatchCard({ match, matchPredictions, matchScore, currentPlayer, onSave }) {
   const sc = matchScore;
   const locked   = isLocked(match.utc);
@@ -492,7 +491,7 @@ const MatchCard = React.memo(function MatchCard({ match, matchPredictions, match
       {/* Save button */}
       {!locked && (
         <div style={{marginTop:12,textAlign:'right'}}>
-          <button className="btn btn-gold" onClick={save} disabled={saving||homeVal===''||awayVal===''}>
+          <button className="btn btn-gold" onClick={save} disabled={saving||homeVal===''||awayVal===''}}>
             {saving ? '…' : saved ? '✓ Saved!' : 'Save Prediction'}
           </button>
         </div>
@@ -837,9 +836,10 @@ function App() {
 
   const todayLabel = React.useMemo(() => new Date().toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'}), []);
 
-  // Filter matches
+  // Filter + sort matches
+  // Order: LIVE first → upcoming by kick-off time → finished (most recent first)
   const visibleMatches = React.useMemo(() => {
-    return MATCHES.filter(m => {
+    const filtered = MATCHES.filter(m => {
       if (stageFilter !== 'all' && m.stage !== stageFilter) return false;
       if (groupFilter !== 'all' && m.group !== groupFilter) return false;
       if (dateFilter !== 'all') {
@@ -848,7 +848,27 @@ function App() {
       }
       return true;
     });
-  }, [stageFilter, groupFilter, dateFilter]);
+
+    // Bucket each match: 0 = LIVE, 1 = upcoming/unscored, 2 = finished+scored
+    const bucket = m => {
+      const s = scores[m.id];
+      if (!s) return 1;
+      if (s.status === 'LIVE') return 0;
+      // Treat as finished if status is FINISHED OR if valid goals exist (covers manual entries)
+      if (s.status === 'FINISHED' || (Number.isFinite(s.home) && Number.isFinite(s.away))) return 2;
+      return 1;
+    };
+
+    return [...filtered].sort((a, b) => {
+      const ba = bucket(a), bb = bucket(b);
+      if (ba !== bb) return ba - bb;
+      const ta = new Date(a.utc), tb = new Date(b.utc);
+      // finished group: most recent first
+      if (ba === 2) return tb - ta;
+      // live + upcoming: chronological
+      return ta - tb;
+    });
+  }, [stageFilter, groupFilter, dateFilter, scores]);
 
   const stages = ['all','group','r32','r16','qf','sf','3rd','final'];
   const groups = ['all','A','B','C','D','E','F','G','H','I','J','K','L'];
