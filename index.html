@@ -67,8 +67,8 @@ const PLAYERS = [
   { name:'Meng',  avatar:'https://drive.google.com/thumbnail?id=1XjFzvaFTCMAIGrS-iGpoDD0o9aFnUnZj&sz=w300' },
   { name:'Hao',   avatar:'https://drive.google.com/thumbnail?id=19RDk4_PRY0P8IHBxE7taOMur7zMtdI0a&sz=w300' },
   { name:'Jeff',  avatar:'https://drive.google.com/thumbnail?id=1nxcQorVO45o2aIExMGP53cSsbzMGUBES&sz=w300' },
-  { name:'Abby',  avatar:'https://drive.google.com/thumbnail?id=1VOYJP67JEFPcPIS_CgIiQNmdn_v-CBIT&sz=w300' },  //   upload Abby's avatar to Drive then paste her file ID here
   { name:'Pal',   avatar:'https://drive.google.com/thumbnail?id=17hkVgHVF5knZuaPT2zMm684RQN1UGcJA&sz=w300' },
+  { name:'Abby',  avatar:'https://drive.google.com/thumbnail?id=1VOYJP67JEFPcPIS_CgIiQNmdn_v-CBIT&sz=w300' },  //   upload Abby's avatar to Drive then paste her file ID here
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -356,7 +356,7 @@ const ScoreBadge = React.memo(function ScoreBadge({ pts }) {
   return <span className="badge badge-red">❌ 0</span>;
 });
 
-// ── MATCH CARD ──────────────────────────────────��─────────────
+// ── MATCH CARD ────────────────────────────────────────────────
 const MatchCard = React.memo(function MatchCard({ match, matchPredictions, matchScore, currentPlayer, onSave }) {
   const sc = matchScore;
   const locked   = isLocked(match.utc);
@@ -491,7 +491,7 @@ const MatchCard = React.memo(function MatchCard({ match, matchPredictions, match
       {/* Save button */}
       {!locked && (
         <div style={{marginTop:12,textAlign:'right'}}>
-          <button className="btn btn-gold" onClick={save} disabled={saving||homeVal===''||awayVal===''}}>
+          <button className="btn btn-gold" onClick={save} disabled={saving||homeVal===''||awayVal===''}>
             {saving ? '…' : saved ? '✓ Saved!' : 'Save Prediction'}
           </button>
         </div>
