@@ -829,9 +829,14 @@ function App() {
       const d = new Date(m.utc).toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'});
       if (!seen.has(d)) seen.set(d, m.utc);
     });
-    return Array.from(seen.entries())
-      .sort((a, b) => new Date(a[1]) - new Date(b[1]))
-      .map(([d]) => d);
+    const allDates = Array.from(seen.entries()).sort((a, b) => new Date(a[1]) - new Date(b[1]));
+    const now = new Date();
+    const today = now.toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'});
+    const todayIdx = allDates.findIndex(([d]) => d === today);
+    // Future = today onward; past = before today (most recent first)
+    const future = todayIdx >= 0 ? allDates.slice(todayIdx) : [];
+    const past   = todayIdx >= 0 ? allDates.slice(0, todayIdx).reverse() : allDates.slice().reverse();
+    return [...future, ...past].map(([d]) => d);
   }, []);
 
   const todayLabel = React.useMemo(() => new Date().toLocaleDateString('en-US', {timeZone: CONFIG.timezone, month:'short', day:'numeric'}), []);
