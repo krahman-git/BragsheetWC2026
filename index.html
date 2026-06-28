@@ -68,7 +68,7 @@ const PLAYERS = [
   { name:'Hao',   avatar:'https://drive.google.com/thumbnail?id=19RDk4_PRY0P8IHBxE7taOMur7zMtdI0a&sz=w300' },
   { name:'Jeff',  avatar:'https://drive.google.com/thumbnail?id=1nxcQorVO45o2aIExMGP53cSsbzMGUBES&sz=w300' },
   { name:'Pal',   avatar:'https://drive.google.com/thumbnail?id=17hkVgHVF5knZuaPT2zMm684RQN1UGcJA&sz=w300' },
-  //   upload Abby's avatar to Drive then paste her file ID here
+    //   upload Abby's avatar to Drive then paste her file ID here
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -644,14 +644,13 @@ function Leaderboard({ predictions, scores }) {
 }
 
 // ── ADMIN MODAL ───────────────────────────────────────────────
-function AdminModal({ onClose, onSaveScore, onFetchLive, scores, adminUnlocked, setAdminUnlocked }) {
+function AdminModal({ onClose, onSaveScore, scores, adminUnlocked, setAdminUnlocked }) {
   const [pin, setPin]       = React.useState('');
   const [selMatch, setSel]  = React.useState('');
   const [homeG, setHomeG]   = React.useState('');
   const [awayG, setAwayG]   = React.useState('');
   const [status, setStatus] = React.useState('FINISHED');
   const [msg, setMsg]       = React.useState('');
-  const [fetching, setFetch]= React.useState(false);
 
   const unlock = () => {
     if (pin === CONFIG.adminPin) { setAdminUnlocked(true); setMsg(''); }
@@ -664,13 +663,6 @@ function AdminModal({ onClose, onSaveScore, onFetchLive, scores, adminUnlocked, 
     setMsg('Saving…');
     await onSaveScore(mid, parseInt(homeG), parseInt(awayG), status);
     setMsg('✓ Score saved!');
-    setTimeout(()=>setMsg(''),2000);
-  };
-
-  const liveSync = async () => {
-    setFetch(true); setMsg('Fetching live scores…');
-    await onFetchLive();
-    setFetch(false); setMsg('✓ Sync complete');
     setTimeout(()=>setMsg(''),2000);
   };
 
@@ -764,10 +756,6 @@ function AdminModal({ onClose, onSaveScore, onFetchLive, scores, adminUnlocked, 
                 </button>
               </div>
             )}
-            <hr style={{borderColor:'var(--navy3)',margin:'16px 0'}}/>
-            <button className="btn btn-ghost" style={{width:'100%'}} onClick={liveSync} disabled={fetching}>
-              {fetching ? '⏳ Syncing…' : '🌐 Auto-Fetch Live Scores (football-data.org)'}
-            </button>
             {msg && <p style={{marginTop:8,color:'var(--gold)',fontSize:'.85rem'}}>{msg}</p>}
           </div>
         )}
@@ -823,11 +811,6 @@ function App() {
   }, [noBackend]);
 
   React.useEffect(()=>{ load(); }, [load]);
-  React.useEffect(()=>{
-    if (noBackend) return;
-    const t = setInterval(load, CONFIG.refreshInterval);
-    return ()=>clearInterval(t);
-  }, [load, noBackend]);
 
   const selectPlayer = React.useCallback((name) => {
     // Find the best date to show on entry
@@ -861,10 +844,6 @@ function App() {
     if (!noBackend) await apiPost({ action:'saveScore', matchId, home, away, status, pin: CONFIG.adminPin });
   }, [noBackend]);
 
-  const handleFetchLive = React.useCallback(async () => {
-    if (!noBackend) await apiPost({ action:'fetchLiveScores', pin: CONFIG.adminPin });
-    await load();
-  }, [noBackend, load]);
 
   // Derive sorted unique match dates in CST (sorted by first match UTC on each date)
   const matchDates = React.useMemo(() => {
@@ -998,6 +977,18 @@ function App() {
         </div>
       </div>
 
+      {/* Rules banner */}
+      <div style={{background:'var(--navy2)',border:'1px solid var(--navy3)',borderRadius:8,
+        padding:'10px 14px',marginBottom:12,fontSize:'.8rem',color:'var(--grey)',
+        display:'flex',alignItems:'flex-start',gap:8}}>
+        <span style={{fontSize:'1rem',flexShrink:0}}>📜</span>
+        <div>
+          <span style={{fontWeight:700,color:'var(--gold)'}}>Rules: </span>
+          Predict only the score line at 90 minutes.
+          <span style={{color:'var(--red)',fontWeight:600}}> Final scores after ET or penalties are not counted.</span>
+        </div>
+      </div>
+
       {/* Reminder banner */}
       <ReminderBanner predictions={predictions} currentPlayer={currentPlayer}/>
 
@@ -1071,7 +1062,7 @@ function App() {
 
       {showAdmin && (
         <AdminModal onClose={()=>setShowAdmin(false)} onSaveScore={handleSaveScore}
-          onFetchLive={handleFetchLive} scores={scores}
+          scores={scores}
           adminUnlocked={adminUnlocked} setAdminUnlocked={setAdminUnlocked}/>
       )}
     </div>
