@@ -555,10 +555,12 @@ function Leaderboard({ predictions, scores }) {
     }));
   }, [lb, prevRanks]);
 
+  const maxPerfects = React.useMemo(() => Math.max(...lb.map(p => p.perfects)), [lb]);
+
   const badges = (p) => {
     const b = [];
     if (lb[0]?.name === p.name && p.total > 0) b.push({icon:'👑', label:'Leader'});
-    if (p.perfects >= 3) b.push({icon:'🎯', label:'Perfect Score King'});
+    if (maxPerfects > 0 && p.perfects === maxPerfects) b.push({icon:'🎯', label:'Perfect Score King'});
     if (p.outcomes > 0 && p.outcomes === p.played) b.push({icon:'🔥', label:'Unbeaten'});
     if (p.total === 0 && p.played > 2) b.push({icon:'💀', label:'Cursed Predictor'});
     return b;
