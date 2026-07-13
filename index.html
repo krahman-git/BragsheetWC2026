@@ -54,7 +54,6 @@
 const CONFIG = {
   appsScriptUrl: 'https://script.google.com/macros/s/AKfycbzRx8woRJ-v-xPiR5rBU2uwJjHCksNh46GUmwoyMrWVYnpUV1WX6rhE1AIQeBTddUR16g/exec',  // paste deployed URL
   adminPin: '2026',          // change to match ADMIN_PIN in apps-script.gs
-  refreshInterval: 60000,   // auto-refresh every 60 seconds
   timezone: 'America/Chicago',
 };
 
@@ -225,8 +224,8 @@ const MATCHES = [
   {id:99, group:'', stage:'qf', home:'Norway',    away:'England',      label:'Quarter-Final 3', utc:'2026-07-11T21:00:00Z', venue:'Miami'},
   {id:100,group:'', stage:'qf', home:'Argentina', away:'Switzerland',  label:'Quarter-Final 4', utc:'2026-07-12T01:00:00Z', venue:'Kansas City'},
   // ── SEMI-FINALS ─────────────────────────────────────────────
-  {id:101,group:'', stage:'sf', home:'TBD', away:'TBD', label:'Semi-Final 1', utc:'2026-07-14T19:00:00Z', venue:'Arlington'},
-  {id:102,group:'', stage:'sf', home:'TBD', away:'TBD', label:'Semi-Final 2', utc:'2026-07-15T19:00:00Z', venue:'Atlanta'},
+  {id:101,group:'', stage:'sf', home:'France',  away:'Spain',     label:'Semi-Final 1', utc:'2026-07-14T19:00:00Z', venue:'Arlington'},
+  {id:102,group:'', stage:'sf', home:'England', away:'Argentina', label:'Semi-Final 2', utc:'2026-07-15T19:00:00Z', venue:'Atlanta'},
   // ── THIRD PLACE & FINAL ─────────────────────────────────────
   {id:103,group:'', stage:'3rd', home:'TBD', away:'TBD', label:'Third Place Play-off', utc:'2026-07-18T21:00:00Z', venue:'Miami'},
   {id:104,group:'', stage:'final', home:'TBD', away:'TBD', label:'🏆 THE FINAL', utc:'2026-07-19T19:00:00Z', venue:'New Jersey'},
